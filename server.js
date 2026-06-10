@@ -4,16 +4,21 @@ const twilio = require('twilio');
 require('dotenv').config();
 
 const app = express();
+app.use(express.json());
 
 app.use(express.urlencoded({ extended: false }));
 
+app.get('/check-email', (req, res) => {
+  res.send("check-email endpoint is alive ✅");
+});
 app.post('/check-email', async (req, res) => {
+    console.log("Incoming Twilio request:", req.body);
 
   const twiml = new twilio.twiml.MessagingResponse();
 
   try {
 
-    const body = (req.body.Body || '').toLowerCase().trim();
+   const body = (req.body.Body || '').trim().toLowerCase();
 
     if (body !== 'check') {
       twiml.message("Send 'check' to read emails 📩");
@@ -35,7 +40,14 @@ app.post('/check-email', async (req, res) => {
       }
     };
 
-    const connection = await imaps.connect(config);
+   const timeout = new Promise((_, reject) =>
+  setTimeout(() => reject(new Error("IMAP timeout")), 12000)
+);
+
+const connection = await Promise.race([
+  imaps.connect(config),
+  timeout
+]);
 
     await connection.openBox('INBOX');
 
